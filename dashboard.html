@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>3D Data Visualization Dashboard</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+    <style>
+        body {
+            margin: 0;
+            background-color: #000;
+            color: #fff;
+            font-family: Monospace;
+            font-size: 13px;
+            line-height: 24px;
+            overscroll-behavior: none;
+        }
+
+        #user-info {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            z-index: 1000;
+            background: rgba(0,0,0,0.7);
+            padding: 10px;
+            border-radius: 5px;
+            font-family: Arial, sans-serif;
+        }
+
+        #logout-btn {
+            background: rgba(255,0,0,0.3);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.5);
+            padding: 5px 10px;
+            border-radius: 3px;
+            cursor: pointer;
+            margin-left: 10px;
+        }
+
+        #logout-btn:hover {
+            background: rgba(255,0,0,0.5);
+        }
+
+        #info {
+            position: absolute;
+            top: 10px;
+            width: 100%;
+            text-align: center;
+            z-index: 100;
+            display: block;
+        }
+
+        #container {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+        }
+
+        a {
+            color: #8ff;
+        }
+
+        #menu {
+            position: absolute;
+            bottom: 20px;
+            width: 100%;
+            text-align: center;
+        }
+
+        .element {
+            width: 120px;
+            height: 150px;
+            box-shadow: 0px 0px 8px rgba(0, 0, 0, 0.3);
+            border: 2px solid;
+            font-family: Helvetica, sans-serif;
+            text-align: center;
+            line-height: normal;
+            cursor: default;
+            backdrop-filter: blur(3px);
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .element::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            border-radius: 4px;
+            pointer-events: none;
+        }
+
+        .element:hover {
+            box-shadow: 0px 0px 15px rgba(255, 255, 255, 0.4);
+            transform: scale(1.05);
+            transition: all 0.3s ease;
+        }
+
+        .element .country {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            font-size: 11px;
+            color: rgba(255,255,255,0.9);
+        }
+
+        .element .age {
+            position: absolute;
+            top: 15px;
+            right: 15px;
+            font-size: 11px;
+            color: rgba(255,255,255,0.9);
+        }
+
+        .element .details {
+            position: absolute;
+            bottom: 12px;
+            left: 0px;
+            right: 0px;
+            padding: 0 8px;
+            max-height: 40px;
+            overflow: hidden;
+            text-align: center;
+        }
+
+        button {
+            color: rgba(127,255,255,0.75);
+            background: transparent;
+            outline: 1px solid rgba(127,255,255,0.75);
+            border: 0px;
+            padding: 5px 10px;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: rgba(0,255,255,0.5);
+        }
+
+        button:active {
+            color: #000000;
+            background-color: rgba(0,255,255,0.75);
+        }
+    </style>
+</head>
+<body>
+    <!-- User Info and Logout -->
+    <div id="user-info">
+        Welcome, <span id="user-name">User</span>
+        <button id="logout-btn" onclick="logout()">Logout</button>
+    </div>
+
+    <!-- Your existing Three.js visualization -->
+    <div id="info"><a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> css3d - periodic table.</div>
+    <div id="container"></div>
+    <div id="menu">
+        <button id="table">TABLE</button>
+        <button id="sphere">SPHERE</button>
+        <button id="helix">HELIX</button>
+        <button id="grid">GRID</button>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.162.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.162.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import TWEEN from 'three/addons/libs/tween.module.js';
+        import { TrackballControls } from 'three/addons/controls/TrackballControls.js';
+        import { CSS3DRenderer, CSS3DObject } from 'three/addons/renderers/CSS3DRenderer.js';
+
+        // Set user name from session storage
+        const userName = sessionStorage.getItem('userName') || 'User';
+        document.getElementById('user-name').textContent = userName;
+
+        let camera, scene, renderer;
+        let controls;
+        const objects = [];
+        const targets = { table: [], sphere: [], helix: [], grid: [] };
+
+        // Use the exact URL you provided
+        const CSV_URL = `https://docs.google.com/spreadsheets/d/e/2PACX-1vTUj7MtF6F0IjlBedfu89g4-hKzhN0AHLIt2AvT0MNHmXKTa-dtd9TGGIhhMbTPHJGweN4ifU3sURCN/pub?gid=0&single=true&output=csv`;
+
+        // Start the application after loading data
+        loadDataFromGoogleSheets();
+
+        // ... [REST OF YOUR EXISTING THREE.JS CODE EXACTLY AS YOU HAD IT]
+        // Copy all your existing Three.js code here - it works perfectly!
+
+        async function loadDataFromGoogleSheets() {
+            try {
+                console.log('Loading data from Google Sheets...');
+                console.log('URL:', CSV_URL);
+                
+                const response = await fetch(CSV_URL);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const csvText = await response.text();
+                console.log('Raw CSV data received, length:', csvText.length);
+                
+                const elements = parseCSV(csvText);
+                console.log('Parsed elements:', elements);
+                
+                if (elements.length === 0) {
+                    throw new Error('No data found in CSV');
+                }
+                
+                init(elements);
+                animate();
+                
+            } catch (error) {
+                console.error('Error loading data from Google Sheets:', error);
+                console.log('Using fallback data...');
+                init(getFallbackData());
+                animate();
+            }
+        }
+
+        function parseCSV(csvText) {
+            const lines = csvText.split('\n').filter(line => line.trim() !== '');
+            const elements = [];
+            
+            console.log('CSV lines found:', lines.length);
+            
+            for (let i = 1; i < lines.length; i++) {
+                const line = lines[i];
+                console.log(`Processing line ${i}:`, line);
+                
+                const columns = [];
+                let current = '';
+                let inQuotes = false;
+                
+                for (let j = 0; j < line.length; j++) {
+                    const char = line[j];
+                    
+                    if (char === '"') {
+                        inQuotes = !inQuotes;
+                    } else if (char === ',' && !inQuotes) {
+                        columns.push(current.trim());
+                        current = '';
+                    } else {
+                        current += char;
+                    }
+                }
+                columns.push(current.trim());
+                
+                const cleanColumns = columns.map(col => {
+                    return col.replace(/^"|"$/g, '').trim();
+                });
+                
+                console.log(`Parsed columns for row ${i}:`, cleanColumns);
+                
+                if (cleanColumns.length >= 6) {
+                    const age = parseInt(cleanColumns[2]);
+                    
+                    if (!isNaN(age)) {
+                        const column = ((i - 1) % 20) + 1;
+                        const row = Math.floor((i - 1) / 20) + 1;
+                        
+                        elements.push(
+                            cleanColumns[0],
+                            cleanColumns[1],
+                            cleanColumns[2],
+                            cleanColumns[3],
+                            cleanColumns[4],
+                            cleanColumns[5],
+                            column,
+                            row
+                        );
+                    } else {
+                        console.warn(`Skipping row ${i} - invalid age:`, cleanColumns[2]);
+                    }
+                } else {
+                    console.warn(`Skipping row ${i} - not enough columns:`, cleanColumns);
+                }
+            }
+            
+            return elements;
+        }
+
+        function getNetWorthColor(netWorth) {
+            const netWorthValue = parseFloat(netWorth.replace(/[$,]/g, '')) || 0;
+            
+            if (netWorthValue < 100000) {
+                return 'rgba(220, 38, 38, 0.8)';
+            } else if (netWorthValue < 200000) {
+                return 'rgba(234, 88, 12, 0.8)';
+            } else {
+                return 'rgba(22, 163, 74, 0.8)';
+            }
+        }
+
+        function getFallbackData() {
+            return [
+                'Lee Siew Suan', 
+                'https://static.kasatria.com/pivot-img/photo/019.jpg', 
+                '25', 
+                'CN', 
+                'Writing',
+                '$85,000.00',
+                1, 1
+            ];
+        }
+
+        function init(table) {
+            camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 1, 10000);
+            camera.position.z = 2000;
+
+            scene = new THREE.Scene();
+
+            for (let i = 0; i < table.length; i += 8) {
+                const element = document.createElement('div');
+                element.className = 'element';
+                
+                const netWorth = table[i + 5];
+                const tileColor = getNetWorthColor(netWorth);
+                element.style.backgroundColor = tileColor.replace(/[\d.]+\)$/g, '0.1)');
+                element.style.borderColor = tileColor.replace(/[\d.]+\)$/g, '0.8)');
+
+                const name = table[i];
+                const initials = name.split(' ').map(word => word[0]).join('').toUpperCase().substring(0, 3);
+
+                const country = document.createElement('div');
+                country.className = 'country';
+                country.textContent = table[i + 3];
+                country.style.position = 'absolute';
+                country.style.top = '15px';
+                country.style.left = '15px';
+                country.style.fontSize = '8px';
+                country.style.color = 'rgba(255,255,255,0.9)';
+                element.appendChild(country);
+
+                const age = document.createElement('div');
+                age.className = 'age';
+                age.textContent = table[i + 2];
+                age.style.position = 'absolute';
+                age.style.top = '15px';
+                age.style.right = '15px';
+                age.style.fontSize = '8px';
+                age.style.color = 'rgba(255,255,255,0.9)';
+                element.appendChild(age);
+
+                if (table[i + 1] && table[i + 1].startsWith('http')) {
+                    const photoContainer = document.createElement('div');
+                    photoContainer.style.position = 'absolute';
+                    photoContainer.style.top = '30px';
+                    photoContainer.style.left = '0px';
+                    photoContainer.style.right = '0px';
+                    photoContainer.style.textAlign = 'center';
+                    
+                    const photo = document.createElement('img');
+                    photo.src = table[i + 1];
+                    photo.style.width = '70px';
+                    photo.style.height = '65px';
+                    photo.style.borderRadius = '2px';
+                    photo.style.objectFit = 'cover';
+                    photo.style.border = '1.5px solid rgba(255,255,255,0.8)';
+                    photo.style.boxShadow = '0 2px 6px rgba(0,0,0,0.4)';
+                    photoContainer.appendChild(photo);
+                    element.appendChild(photoContainer);
+                } else {
+                    const initialsEl = document.createElement('div');
+                    initialsEl.className = 'initials';
+                    initialsEl.textContent = initials;
+                    initialsEl.style.position = 'absolute';
+                    initialsEl.style.top = '50px';
+                    initialsEl.style.left = '0px';
+                    initialsEl.style.right = '0px';
+                    initialsEl.style.fontSize = '28px';
+                    initialsEl.style.fontWeight = 'bold';
+                    initialsEl.style.color = 'rgba(255,255,255,0.9)';
+                    initialsEl.style.textShadow = '0 0 8px rgba(0,0,0,0.5)';
+                    element.appendChild(initialsEl);
+                }
+
+                const details = document.createElement('div');
+                details.className = 'details';
+                details.style.position = 'absolute';
+                details.style.bottom = '12px';
+                details.style.left = '0px';
+                details.style.right = '0px';
+                details.style.padding = '0 5px';
+                details.style.textAlign = 'center';
+
+                const nameEl = document.createElement('div');
+                nameEl.textContent = table[i];
+                nameEl.style.fontSize = '10px';
+                nameEl.style.color = 'rgba(255,255,255,0.9)';
+                nameEl.style.lineHeight = '1.3';
+                nameEl.style.fontWeight = 'bold';
+                nameEl.style.marginBottom = '2px';
+
+                const interestEl = document.createElement('div');
+                interestEl.textContent = table[i + 4];
+                interestEl.style.fontSize = '8px';
+                interestEl.style.color = 'rgba(255,255,255,0.8)';
+                interestEl.style.lineHeight = '1.3';
+
+                details.appendChild(nameEl);
+                details.appendChild(interestEl);
+                element.appendChild(details);
+
+                const objectCSS = new CSS3DObject(element);
+                objectCSS.position.x = Math.random() * 4000 - 2000;
+                objectCSS.position.y = Math.random() * 4000 - 2000;
+                objectCSS.position.z = Math.random() * 4000 - 2000;
+                scene.add(objectCSS);
+
+                objects.push(objectCSS);
+
+                const tableObject = new THREE.Object3D();
+                tableObject.position.x = (table[i + 6] * 140) - 1250;
+                tableObject.position.y = -(table[i + 7] * 160) + 700;
+                targets.table.push(tableObject);
+            }
+
+            const vector = new THREE.Vector3();
+            for (let i = 0, l = objects.length; i < l; i++) {
+                const phi = Math.acos(-1 + (2 * i) / l);
+                const theta = Math.sqrt(l * Math.PI) * phi;
+
+                const object = new THREE.Object3D();
+                object.position.setFromSphericalCoords(1000, phi, theta);
+                vector.copy(object.position).multiplyScalar(2);
+                object.lookAt(vector);
+                targets.sphere.push(object);
+            }
+
+            for (let i = 0, l = objects.length; i < l; i++) {
+                const helixIndex = i % 2;
+                const positionInHelix = Math.floor(i / 2);
+                
+                const theta = positionInHelix * 0.25 + Math.PI;
+                const y = -(positionInHelix * 8) + 400;
+                
+                const radius = helixIndex === 0 ? 900 : 700;
+                
+                const object = new THREE.Object3D();
+                object.position.setFromCylindricalCoords(radius, theta, y);
+                
+                if (helixIndex === 1) {
+                    object.position.y += 60;
+                }
+                
+                vector.x = object.position.x * 2;
+                vector.y = object.position.y;
+                vector.z = object.position.z * 2;
+                object.lookAt(vector);
+                targets.helix.push(object);
+            }
+
+            for (let i = 0; i < objects.length; i++) {
+                const object = new THREE.Object3D();
+                
+                const xIndex = i % 5;
+                const yIndex = Math.floor(i / 5) % 4;
+                const zIndex = Math.floor(i / 20);
+                
+                object.position.x = (xIndex * 350) - 700;
+                object.position.y = (-yIndex * 300) + 450;
+                object.position.z = (zIndex * 500) - 2250;
+                
+                targets.grid.push(object);
+            }
+
+            renderer = new CSS3DRenderer();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            document.getElementById('container').appendChild(renderer.domElement);
+
+            controls = new TrackballControls(camera, renderer.domElement);
+            controls.minDistance = 500;
+            controls.maxDistance = 8000;
+            controls.addEventListener('change', render);
+
+            document.getElementById('table').addEventListener('click', function() {
+                transform(targets.table, 2000);
+            });
+            document.getElementById('sphere').addEventListener('click', function() {
+                transform(targets.sphere, 2000);
+            });
+            document.getElementById('helix').addEventListener('click', function() {
+                transform(targets.helix, 2000);
+            });
+            document.getElementById('grid').addEventListener('click', function() {
+                transform(targets.grid, 2000);
+            });
+
+            transform(targets.table, 2000);
+            window.addEventListener('resize', onWindowResize);
+        }
+
+        function transform(targets, duration) {
+            TWEEN.removeAll();
+
+            for (let i = 0; i < objects.length; i++) {
+                const object = objects[i];
+                const target = targets[i];
+
+                new TWEEN.Tween(object.position)
+                    .to({ x: target.position.x, y: target.position.y, z: target.position.z }, Math.random() * duration + duration)
+                    .easing(TWEEN.Easing.Exponential.InOut)
+                    .start();
+
+                new TWEEN.Tween(object.rotation)
+                    .to({ x: target.rotation.x, y: target.rotation.y, z: target.rotation.z }, Math.random() * duration + duration)
+                    .easing(TWEEN.Easing.Exponential.InOut)
+                    .start();
+            }
+
+            new TWEEN.Tween(this)
+                .to({}, duration * 2)
+                .onUpdate(render)
+                .start();
+        }
+
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            render();
+        }
+
+        function animate() {
+            requestAnimationFrame(animate);
+            TWEEN.update();
+            controls.update();
+        }
+
+        function render() {
+            renderer.render(scene, camera);
+        }
+    </script>
+
+    <script src="auth.js"></script>
+</body>
+</html>
