@@ -147,13 +147,11 @@
     </style>
 </head>
 <body>
-    <!-- User Info and Logout -->
+    
     <div id="user-info">
-        Welcome, <span id="user-name">User</span>
         <button id="logout-btn" onclick="logout()">Logout</button>
     </div>
 
-    <!-- Your existing Three.js visualization -->
     <div id="info"><a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> css3d - periodic table.</div>
     <div id="container"></div>
     <div id="menu">
@@ -187,14 +185,11 @@
         const objects = [];
         const targets = { table: [], sphere: [], helix: [], grid: [] };
 
-        // Use the exact URL you provided
+        //Google sheet link
         const CSV_URL = `https://docs.google.com/spreadsheets/d/e/2PACX-1vTUj7MtF6F0IjlBedfu89g4-hKzhN0AHLIt2AvT0MNHmXKTa-dtd9TGGIhhMbTPHJGweN4ifU3sURCN/pub?gid=0&single=true&output=csv`;
 
-        // Start the application after loading data
+        // Start the application after load
         loadDataFromGoogleSheets();
-
-        // ... [REST OF YOUR EXISTING THREE.JS CODE EXACTLY AS YOU HAD IT]
-        // Copy all your existing Three.js code here - it works perfectly!
 
         async function loadDataFromGoogleSheets() {
             try {
