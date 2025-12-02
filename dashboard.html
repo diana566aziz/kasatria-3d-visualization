@@ -147,18 +147,21 @@
     </style>
 </head>
 <body>
-    
+    <!-- User Info and Logout -->
     <div id="user-info">
         Welcome, <span id="user-name">User</span>
         <button id="logout-btn" onclick="logout()">Logout</button>
     </div>
 
+    <!-- Your existing Three.js visualization -->
+    <div id="info"><a href="https://threejs.org" target="_blank" rel="noopener">three.js</a> css3d - periodic table.</div>
     <div id="container"></div>
     <div id="menu">
         <button id="table">TABLE</button>
         <button id="sphere">SPHERE</button>
         <button id="helix">HELIX</button>
         <button id="grid">GRID</button>
+        <button id="tetrahedron">TETRAHEDRON</button> 
     </div>
 
     <script type="importmap">
@@ -183,12 +186,12 @@
         let camera, scene, renderer;
         let controls;
         const objects = [];
-        const targets = { table: [], sphere: [], helix: [], grid: [] };
+        const targets = { table: [], sphere: [], helix: [], grid: [], tetrahedron: [] };
 
-        //Google sheet link
+        // Use the exact URL you provided
         const CSV_URL = `https://docs.google.com/spreadsheets/d/e/2PACX-1vTUj7MtF6F0IjlBedfu89g4-hKzhN0AHLIt2AvT0MNHmXKTa-dtd9TGGIhhMbTPHJGweN4ifU3sURCN/pub?gid=0&single=true&output=csv`;
 
-        // Start the application after load
+        // Start the application after loading data
         loadDataFromGoogleSheets();
 
         async function loadDataFromGoogleSheets() {
@@ -469,6 +472,198 @@
                 targets.grid.push(object);
             }
 
+
+            //Code section for Tetrahedron//
+
+            const totalElements = objects.length;
+            console.log(`Total elements: ${totalElements}`);
+
+            const rowPattern = [1, 3, 5, 7, 9, 11, 14];
+            const totalTilesPerFace = rowPattern.reduce((sum, count) => sum + count, 0);
+
+            const maxFaces = Math.min(4, Math.floor(totalElements / totalTilesPerFace));
+            const remainingElements = totalElements % totalTilesPerFace;
+
+            console.log(`Can fully populate ${maxFaces} faces, ${remainingElements} elements left`);
+
+            const size = 2500;
+
+            const vertices = [
+                new THREE.Vector3(0, size, 0),
+                new THREE.Vector3(0, size/2, 2*size/3),
+                new THREE.Vector3(-Math.sqrt(3)*size/3, size/2, -size/3),
+                new THREE.Vector3(Math.sqrt(3)*size/3, size/2, -size/3)
+            ];
+
+            const faces = [
+                [vertices[0], vertices[1], vertices[2]],
+                [vertices[0], vertices[2], vertices[3]],
+                [vertices[0], vertices[3], vertices[1]],
+                [vertices[1], vertices[2], vertices[3]]
+            ];
+
+            let elementIndex = 0;
+
+            for (let faceIndex = 0; faceIndex < maxFaces; faceIndex++) {
+                const face = faces[faceIndex];
+                
+                let cumulativeTiles = 0;
+                for (let row = 0; row < rowPattern.length; row++) {
+                    const tilesInRow = rowPattern[row];
+                    
+                    const totalRows = rowPattern.length;
+                    const rowHeight = 0.8 / totalRows;
+                    const rowStart = 0.2 + (row * rowHeight);
+                    
+                    for (let tile = 0; tile < tilesInRow; tile++) {
+                        if (elementIndex >= totalElements) break;
+                        
+                        const object = new THREE.Object3D();
+                        
+                        const tileSpacing = 0.8 / tilesInRow;
+                        const tileStart = (1 - tileSpacing * tilesInRow) / 2;
+                        const horizontalPos = tileStart + (tile * tileSpacing) + (tileSpacing / 2);
+                        
+                        const u = 1 - rowStart;
+                        const v = horizontalPos;
+                        
+                        const A = face[0];
+                        const B = face[1];
+                        const C = face[2];
+                        
+                        const bottomPoint = new THREE.Vector3();
+                        bottomPoint.lerpVectors(B, C, v);
+                        
+                        const position = new THREE.Vector3();
+                        position.lerpVectors(bottomPoint, A, u);
+                        
+                        const jitter = size * 0.005;
+                        position.x += (Math.random() - 0.5) * jitter;
+                        position.y += (Math.random() - 0.5) * jitter;
+                        position.z += (Math.random() - 0.5) * jitter;
+                        
+                        object.position.copy(position);
+                        
+                        const v1 = face[1].clone().sub(face[0]);
+                        const v2 = face[2].clone().sub(face[0]);
+                        const normal = new THREE.Vector3().crossVectors(v1, v2).normalize();
+                        
+                        if (faceIndex === 3) {
+                            normal.multiplyScalar(-1);
+                        }
+                        
+                        object.lookAt(position.clone().sub(normal));
+                        
+                        targets.tetrahedron[elementIndex] = object;
+                        elementIndex++;
+                        cumulativeTiles++;
+                    }
+                }
+            }
+
+            let faceIndex = maxFaces;
+            while (elementIndex < totalElements && faceIndex < 4) {
+                const face = faces[faceIndex];
+                
+                const elementsForThisFace = Math.min(
+                    totalTilesPerFace,
+                    totalElements - elementIndex
+                );
+                
+                let tilesPlaced = 0;
+                for (let row = 0; row < rowPattern.length && tilesPlaced < elementsForThisFace; row++) {
+                    const maxTilesInRow = Math.min(rowPattern[row], elementsForThisFace - tilesPlaced);
+                    
+                    const totalRows = rowPattern.length;
+                    const rowHeight = 1.0 / totalRows;
+                    const rowStart = 0.1 + (row * rowHeight);
+                    
+                    for (let tile = 0; tile < maxTilesInRow; tile++) {
+                        if (elementIndex >= totalElements) break;
+                        
+                        const object = new THREE.Object3D();
+                        
+                        const tileSpacing = 0.8 / maxTilesInRow;
+                        const tileStart = (1 - tileSpacing * maxTilesInRow) / 2;
+                        const horizontalPos = tileStart + (tile * tileSpacing) + (tileSpacing / 2);
+                        
+                        const u = 1 - rowStart;
+                        const v = horizontalPos;
+                        
+                        const A = face[0];
+                        const B = face[1];
+                        const C = face[2];
+                        
+                        const bottomPoint = new THREE.Vector3();
+                        bottomPoint.lerpVectors(B, C, v);
+                        
+                        const position = new THREE.Vector3();
+                        position.lerpVectors(bottomPoint, A, u);
+                        
+                        const jitter = size * 0.005;
+                        position.x += (Math.random() - 0.5) * jitter;
+                        position.y += (Math.random() - 0.5) * jitter;
+                        position.z += (Math.random() - 0.5) * jitter;
+                        
+                        object.position.copy(position);
+                        
+                        const v1 = face[1].clone().sub(face[0]);
+                        const v2 = face[2].clone().sub(face[0]);
+                        const normal = new THREE.Vector3().crossVectors(v1, v2).normalize();
+                        
+                        if (faceIndex === 3) {
+                            normal.multiplyScalar(-1);
+                        }
+                        
+                        object.lookAt(position.clone().sub(normal));
+                        
+                        targets.tetrahedron[elementIndex] = object;
+                        elementIndex++;
+                        tilesPlaced++;
+                    }
+                }
+                faceIndex++;
+            }
+
+            for (let i = elementIndex; i < totalElements; i++) {
+                const object = new THREE.Object3D();
+                
+                const faceIndex = Math.floor(Math.random() * 4);
+                const face = faces[faceIndex];
+                
+                const a = 0.3 + Math.random() * 0.4;
+                const b = Math.random() * (0.7 - a);
+                const c = 1 - a - b;
+                
+                const position = new THREE.Vector3();
+                position.addScaledVector(face[0], a);
+                position.addScaledVector(face[1], b);
+                position.addScaledVector(face[2], c);
+                
+                object.position.copy(position);
+                
+                const v1 = face[1].clone().sub(face[0]);
+                const v2 = face[2].clone().sub(face[0]);
+                const normal = new THREE.Vector3().crossVectors(v1, v2).normalize();
+                
+                if (faceIndex === 3) {
+                    normal.multiplyScalar(-1);
+                }
+                
+                object.lookAt(position.clone().sub(normal));
+                
+                targets.tetrahedron[i] = object;
+            }
+
+            for (let i = 0; i < targets.tetrahedron.length; i++) {
+                if (targets.tetrahedron[i]) {
+                    targets.tetrahedron[i].position.y -= 1500;
+                }
+            }
+            
+            //End of Tetrahedron section//
+
+
             renderer = new CSS3DRenderer();
             renderer.setSize(window.innerWidth, window.innerHeight);
             document.getElementById('container').appendChild(renderer.domElement);
@@ -489,6 +684,10 @@
             });
             document.getElementById('grid').addEventListener('click', function() {
                 transform(targets.grid, 2000);
+            });
+            // Add tetrahedron event listener
+            document.getElementById('tetrahedron').addEventListener('click', function() {
+                transform(targets.tetrahedron, 2000);
             });
 
             transform(targets.table, 2000);
@@ -537,6 +736,6 @@
         }
     </script>
 
-    <script src="authentication.js"></script>
+    <script src="auth.js"></script>
 </body>
 </html>
