@@ -186,7 +186,7 @@
         const objects = [];
         const targets = { table: [], sphere: [], helix: [], grid: [], tetrahedron: [] };
 
-        // Use the exact URL you provided
+        // Google sheet link
         const CSV_URL = `https://docs.google.com/spreadsheets/d/e/2PACX-1vTUj7MtF6F0IjlBedfu89g4-hKzhN0AHLIt2AvT0MNHmXKTa-dtd9TGGIhhMbTPHJGweN4ifU3sURCN/pub?gid=0&single=true&output=csv`;
 
         // Start the application after loading data
@@ -289,11 +289,11 @@
             const netWorthValue = parseFloat(netWorth.replace(/[$,]/g, '')) || 0;
             
             if (netWorthValue < 100000) {
-                return 'rgba(220, 38, 38, 0.8)';
+                return 'rgba(239, 48, 34, 0.8)'; // EF3022 - red
             } else if (netWorthValue < 200000) {
-                return 'rgba(234, 88, 12, 0.8)';
+                return 'rgba(253, 202, 53, 0.8)'; // FDCA35 - orange
             } else {
-                return 'rgba(22, 163, 74, 0.8)';
+                return 'rgba(58, 159, 72, 0.8)'; // 3A9F48 - green
             }
         }
 
