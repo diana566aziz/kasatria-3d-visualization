@@ -147,7 +147,6 @@
     </style>
 </head>
 <body>
-    <!-- User Info and Logout -->
     <div id="user-info">
         Welcome, <span id="user-name">User</span>
         <button id="logout-btn" onclick="logout()">Logout</button>
@@ -189,12 +188,12 @@
         // Google sheet link
         const CSV_URL = `https://docs.google.com/spreadsheets/d/e/2PACX-1vTUj7MtF6F0IjlBedfu89g4-hKzhN0AHLIt2AvT0MNHmXKTa-dtd9TGGIhhMbTPHJGweN4ifU3sURCN/pub?gid=0&single=true&output=csv`;
 
-        // Start the application after loading data
+        // Start the application after load
         loadDataFromGoogleSheets();
 
         async function loadDataFromGoogleSheets() {
             try {
-                console.log('Loading data from Google Sheets...');
+                console.log('Loading data from Google Sheet...');
                 console.log('URL:', CSV_URL);
                 
                 const response = await fetch(CSV_URL);
@@ -289,11 +288,11 @@
             const netWorthValue = parseFloat(netWorth.replace(/[$,]/g, '')) || 0;
             
             if (netWorthValue < 100000) {
-                return 'rgba(239, 48, 34, 0.8)'; // EF3022 - red
+                return 'rgba(239, 48, 34, 0.8)'; // #EF3022 - red
             } else if (netWorthValue < 200000) {
-                return 'rgba(253, 202, 53, 0.8)'; // FDCA35 - orange
+                return 'rgba(253, 202, 53, 0.8)'; // #FDCA35 - orange
             } else {
-                return 'rgba(58, 159, 72, 0.8)'; // 3A9F48 - green
+                return 'rgba(58, 159, 72, 0.8)'; // #3A9F48 - green
             }
         }
 
